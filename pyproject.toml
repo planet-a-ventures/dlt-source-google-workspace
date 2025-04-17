@@ -1,0 +1,59 @@
+[project]
+name = "dlt-source-google-workspace"
+dynamic = ["version"]
+description = "DLT (dlthub.com) source for Google Workspace"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dlt>=1.9.0",
+    "flagsmith>=3.8.0",
+    "google-api-python-client>=2.165.0",
+    "google-auth-oauthlib>=1.2.1",
+]
+authors = [{ name = "Planet A Ventures" }]
+maintainers = [
+    { name = "Joscha Feth", email = "joscha@planet-a.com" },
+]
+keywords = ["google", "workspace", "calendar", "dlt", "dlthub"]
+license = { text = "MIT" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.optional-dependencies]
+show = [
+    "dlt[duckdb]>=1.9.0",
+    "streamlit>=1.41.1",
+    "watchdog>=6.0.0",
+]
+
+[tool.uv]
+resolution = "lowest-direct"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "semver"
+bump = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["tests"]
+
+[tool.ruff.lint]
+extend-select = ["T20"]
