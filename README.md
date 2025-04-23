@@ -18,7 +18,7 @@ Create a `.dlt/secrets.toml` with your API credentials (`service_account`):
 google_workspace_service_account_info = "{ ... }"
 ```
 
-and a `.dlt/config.toml` with your admin email adress:
+and a `.dlt/config.toml` with your admin email address:
 
 ```toml
 admin_user_email = "some-admin@your-domain.com"
