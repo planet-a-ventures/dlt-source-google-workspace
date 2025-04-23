@@ -9,7 +9,6 @@ Currently loads the following data:
 | Table | Contains |
 | -- | -- |
 | `users` | All users in the organization |
-| `calendar_entries` | Calendar entries for each user in the organization |
 
 ## Usage
 
