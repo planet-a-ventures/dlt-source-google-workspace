@@ -9,6 +9,7 @@ Currently loads the following data:
 | Table | Contains |
 | -- | -- |
 | `users` | All users in the organization |
+| `calendar_events` | Primary-calendar events per active root-OU user |
 
 ## Usage
 
