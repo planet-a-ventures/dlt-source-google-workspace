@@ -15,13 +15,15 @@ class Table(StrEnum):
 
 
 # Event types mirrored from the org-calendar-source Pipedream component so the
-# two capture the same set of calendar entries.
-CALENDAR_EVENT_TYPES = [
+# two capture the same set of calendar entries. A tuple (not a list) on purpose:
+# dlt turns the transformer signature into a dataclass config spec, and a mutable
+# default (list) is rejected with "mutable default ... is not allowed".
+CALENDAR_EVENT_TYPES = (
     "default",
     "focusTime",
     "outOfOffice",
     "workingLocation",
-]
+)
 
 # How far back / forward to poll on every run, in days. Wide and overlapping on
 # purpose: each run re-upserts (merge on composite id) whatever falls in the
