@@ -1,12 +1,38 @@
 """A source loading entities from Google Workspace"""
 
+import json
+import logging
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
-from typing import Any, Dict, Iterable, List, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 import dlt
 from dlt.common.typing import TDataItem
 from dlt.sources import DltResource
+from googleapiclient.errors import HttpError
 from .api_client import get_calendar_service, get_directory_service
+
+logger = logging.getLogger(__name__)
+
+# Per-user Calendar API errors that mean "this account simply has no calendar to
+# read" rather than "the whole integration is broken". We skip the user and move
+# on, mirroring the old Pipedream org-calendar-source behaviour, instead of
+# letting one un-provisioned account fail the entire extract:
+#   - notACalendarUser (403): user isn't signed up for / licensed for Calendar
+#     (shared mailboxes, service/no-license accounts, etc.)
+#   - notFound (404): primary calendar doesn't exist for this user
+_CALENDAR_SKIP_REASONS = {"notACalendarUser", "notFound"}
+
+
+def _http_error_reason(err: HttpError) -> Optional[str]:
+    """Best-effort extraction of Google's machine-readable error `reason`."""
+    try:
+        payload = json.loads(err.content.decode("utf-8"))
+        errors = payload.get("error", {}).get("errors") or []
+        if errors:
+            return errors[0].get("reason")
+        return payload.get("error", {}).get("status")
+    except Exception:
+        return None
 
 
 class Table(StrEnum):
@@ -130,20 +156,32 @@ async def calendar_events(
 
         page_token = None
         while True:
-            results = (
-                calendar_service.events()
-                .list(
-                    calendarId="primary",
-                    singleEvents=True,
-                    orderBy="startTime",
-                    eventTypes=list(event_types),
-                    timeMin=time_min.isoformat(),
-                    timeMax=time_max.isoformat(),
-                    maxResults=2500,
-                    pageToken=page_token,
+            try:
+                results = (
+                    calendar_service.events()
+                    .list(
+                        calendarId="primary",
+                        singleEvents=True,
+                        orderBy="startTime",
+                        eventTypes=list(event_types),
+                        timeMin=time_min.isoformat(),
+                        timeMax=time_max.isoformat(),
+                        maxResults=2500,
+                        pageToken=page_token,
+                    )
+                    .execute()
                 )
-                .execute()
-            )
+            except HttpError as err:
+                reason = _http_error_reason(err)
+                if err.resp.status in (403, 404) and reason in _CALENDAR_SKIP_REASONS:
+                    # This account has no readable calendar — skip it, don't fail
+                    # the whole run. Any other 403/404 (e.g. delegation misconfig)
+                    # still raises so real problems stay loud.
+                    logger.warning(
+                        "Skipping calendar for %s: %s", primary_email, reason
+                    )
+                    break
+                raise
 
             for entry in results.get("items", []):
                 yield dlt.mark.with_hints(
